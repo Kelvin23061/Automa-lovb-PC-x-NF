@@ -113,24 +113,24 @@ function HistoricoPage() {
                   {rows.map((row) => (
                     <TableRow key={row.id}>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
-                        {formatDateTime(row.createdAt)}
+                        {formatDateTime(row.created_at)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap font-medium">
-                        {row.nfeNumero}/{row.nfeSerie}
+                        {row.numero_nota}/{row.serie}
                         <span className="block text-xs font-normal text-muted-foreground">
-                          {row.fileName}
+                          {row.chave}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="block truncate" title={row.fornecedorNome}>
-                          {row.fornecedorNome}
+                        <span className="block truncate" title={row.emitente_nome}>
+                          {row.emitente_nome}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {formatCnpj(row.fornecedorCnpj)}
+                          {formatCnpj(row.emitente_cnpj)}
                         </span>
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-right">
-                        {formatMoney(row.valorTotal)}
+                        {formatMoney(row.valor_total)}
                       </TableCell>
                       <TableCell>
                         {row.status === "sucesso" ? (
@@ -144,18 +144,19 @@ function HistoricoPage() {
                             Erro
                           </Badge>
                         )}
-                        {row.httpStatus !== null && (
+                        {row.http_status !== null && (
                           <span className="mt-1 block text-xs text-muted-foreground">
-                            HTTP {row.httpStatus}
+                            HTTP {row.http_status}
                           </span>
                         )}
                       </TableCell>
                       <TableCell className="whitespace-nowrap font-mono text-xs">
-                        {row.numeroPedido ?? "-"}
+                        {row.numero_pedido ?? "-"}
                       </TableCell>
                       <TableCell className="max-w-80 text-xs text-muted-foreground">
-                        <span className="block break-words">{row.errorMessage ?? "OK"}</span>
+                        <span className="block break-words">{row.error_message ?? "OK"}</span>
                       </TableCell>
+
                     </TableRow>
                   ))}
                 </TableBody>

@@ -14,7 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listHistory } from "@/lib/concinco.functions";
+import { listarHistorico } from "@/lib/concinco.functions";
+import type { HistoryRow } from "@/lib/concinco-schemas";
 import { formatCnpj, formatMoney } from "@/lib/nfe";
 
 export const Route = createFileRoute("/historico")({
@@ -45,13 +46,13 @@ function formatDateTime(value: string) {
 }
 
 function HistoricoPage() {
-  const fetchHistory = useServerFn(listHistory);
+  const fetchHistory = useServerFn(listarHistorico);
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["history"],
     queryFn: () => fetchHistory(),
   });
 
-  const rows = data ?? [];
+  const rows: HistoryRow[] = data ?? [];
   const enviados = rows.filter((row) => row.status === "sucesso").length;
   const falhas = rows.length - enviados;
 

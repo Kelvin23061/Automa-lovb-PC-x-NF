@@ -1,7 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useRef, useState } from "react";
-import { AlertCircle, CheckCircle2, FileUp, Loader2, Trash2, UploadCloud } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  FileUp,
+  Loader2,
+  RefreshCw,
+  Trash2,
+  UploadCloud,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -10,8 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { NfePreview } from "@/components/NfePreview";
-import { gerarPedidoCompra } from "@/lib/concinco.functions";
-import type { EnvioResultado } from "@/lib/concinco-schemas";
+import { consultarCadastroItens, gerarPedidoCompra } from "@/lib/concinco.functions";
+import type { EnvioResultado, ItemVinculo } from "@/lib/concinco-schemas";
 import { NfeParseError, parseNfeXml, type NfeData } from "@/lib/nfe";
 
 export const Route = createFileRoute("/")({
@@ -38,6 +46,9 @@ interface Entry {
   key: string;
   nfe: NfeData;
   loading: boolean;
+  checking: boolean;
+  vinculos: Record<number, ItemVinculo> | null;
+  vinculoErro: string | null;
   result: EnvioResultado | null;
 }
 
@@ -47,52 +58,95 @@ function ImportarPage() {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const enviar = useServerFn(gerarPedidoCompra);
+  const consultar = useServerFn(consultarCadastroItens);
 
-  const handleFiles = useCallback(async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const errors: string[] = [];
-    const parsed: Entry[] = [];
+  const patch = (key: string, changes: Partial<Entry>) =>
+    setEntries((prev) => prev.map((e) => (e.key === key ? { ...e, ...changes } : e)));
 
-    for (const file of Array.from(files)) {
-      if (!file.name.toLowerCase().endsWith(".xml")) {
-        errors.push(`${file.name}: apenas arquivos .xml são aceitos.`);
-        continue;
-      }
+  const verificarVinculos = useCallback(
+    async (entry: Entry, silencioso = false) => {
+      patch(entry.key, { checking: true });
       try {
-        const nfe = parseNfeXml(await file.text(), file.name);
-        parsed.push({
-          key: `${file.name}-${nfe.chave || nfe.numero}-${Date.now()}-${parsed.length}`,
-          nfe,
-          loading: false,
-          result: null,
+        const res = await consultar({ data: { itens: entry.nfe.itens } });
+        const mapa: Record<number, ItemVinculo> = {};
+        for (const v of res.vinculos) mapa[v.sequencia] = v;
+        patch(entry.key, {
+          checking: false,
+          vinculos: mapa,
+          vinculoErro: res.ok ? null : res.mensagem,
         });
+        if (!silencioso) {
+          const pendentes = res.vinculos.filter((v) => !v.codigoInterno).length;
+          if (!res.ok) {
+            toast.error(res.mensagem ?? "Não foi possível consultar o cadastro dos itens.");
+          } else if (pendentes === 0) {
+            toast.success("Todos os itens estão cadastrados. Pronto para gerar o pedido.");
+          } else {
+            toast.warning(`${pendentes} item(ns) ainda sem cadastro na empresa.`);
+          }
+        }
       } catch (error) {
-        errors.push(
-          `${file.name}: ${error instanceof NfeParseError ? error.message : "não foi possível ler o XML."}`,
-        );
+        const message = error instanceof Error ? error.message : "Erro ao consultar itens.";
+        patch(entry.key, { checking: false, vinculoErro: message });
+        if (!silencioso) toast.error(message);
       }
-    }
+    },
+    [consultar],
+  );
 
-    setParseErrors(errors);
-    if (parsed.length) {
-      setEntries((prev) => [...parsed, ...prev]);
-      toast.success(
-        parsed.length === 1 ? "Nota fiscal lida com sucesso." : `${parsed.length} notas lidas.`,
-      );
-    }
-  }, []);
+  const handleFiles = useCallback(
+    async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      const errors: string[] = [];
+      const parsed: Entry[] = [];
+
+      for (const file of Array.from(files)) {
+        if (!file.name.toLowerCase().endsWith(".xml")) {
+          errors.push(`${file.name}: apenas arquivos .xml são aceitos.`);
+          continue;
+        }
+        try {
+          const nfe = parseNfeXml(await file.text(), file.name);
+          parsed.push({
+            key: `${file.name}-${nfe.chave || nfe.numero}-${Date.now()}-${parsed.length}`,
+            nfe,
+            loading: false,
+            checking: false,
+            vinculos: null,
+            vinculoErro: null,
+            result: null,
+          });
+        } catch (error) {
+          errors.push(
+            `${file.name}: ${error instanceof NfeParseError ? error.message : "não foi possível ler o XML."}`,
+          );
+        }
+      }
+
+      setParseErrors(errors);
+      if (parsed.length) {
+        setEntries((prev) => [...parsed, ...prev]);
+        toast.success(
+          parsed.length === 1 ? "Nota fiscal lida com sucesso." : `${parsed.length} notas lidas.`,
+        );
+        for (const entry of parsed) void verificarVinculos(entry, true);
+      }
+    },
+    [verificarVinculos],
+  );
 
   const removeEntry = (key: string) => setEntries((prev) => prev.filter((e) => e.key !== key));
 
   const send = async (entry: Entry) => {
-    setEntries((prev) =>
-      prev.map((e) => (e.key === entry.key ? { ...e, loading: true, result: null } : e)),
-    );
+    patch(entry.key, { loading: true, result: null });
+    const codigosInternos: Record<string, string | null> = {};
+    for (const item of entry.nfe.itens) {
+      codigosInternos[String(item.sequencia)] =
+        entry.vinculos?.[item.sequencia]?.codigoInterno ?? null;
+    }
     try {
-      const result = await enviar({ data: entry.nfe });
-      setEntries((prev) =>
-        prev.map((e) => (e.key === entry.key ? { ...e, loading: false, result } : e)),
-      );
+      const result = await enviar({ data: { nfe: entry.nfe, codigosInternos } });
+      patch(entry.key, { loading: false, result });
       if (result.ok) {
         toast.success(
           result.numeroPedido
@@ -104,28 +158,22 @@ function ImportarPage() {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro inesperado no envio.";
-      setEntries((prev) =>
-        prev.map((e) =>
-          e.key === entry.key
-            ? {
-                ...e,
-                loading: false,
-                result: {
-                  ok: false,
-                  numeroPedido: null,
-                  httpStatus: null,
-                  errorMessage: message,
-                  payload: null,
-                  response: null,
-                  historyId: null,
-                },
-              }
-            : e,
-        ),
-      );
+      patch(entry.key, {
+        loading: false,
+        result: {
+          ok: false,
+          numeroPedido: null,
+          httpStatus: null,
+          errorMessage: message,
+          payload: null,
+          response: null,
+          historyId: null,
+        },
+      });
       toast.error(message);
     }
   };
+
 
   return (
     <div className="space-y-8">

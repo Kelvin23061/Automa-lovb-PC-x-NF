@@ -197,6 +197,45 @@ function ConfiguracoesPage() {
                 </div>
               </div>
 
+              <div className="space-y-4 rounded-md border border-border p-4">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Consulta do cadastro de produtos
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Usada para localizar o código interno da empresa pelo código de barras (EAN) ou
+                    pela referência do item faturado.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="produtoPath">Rota de consulta de produtos</Label>
+                  <Input
+                    id="produtoPath"
+                    placeholder="/ProdutoApi/api/v1/Produto/consultar"
+                    value={form.produtoPath}
+                    onChange={(event) => update("produtoPath")(event.target.value)}
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="produtoParamEan">Parâmetro do código de barras</Label>
+                    <Input
+                      id="produtoParamEan"
+                      value={form.produtoParamEan}
+                      onChange={(event) => update("produtoParamEan")(event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="produtoParamReferencia">Parâmetro da referência</Label>
+                    <Input
+                      id="produtoParamReferencia"
+                      value={form.produtoParamReferencia}
+                      onChange={(event) => update("produtoParamReferencia")(event.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="observacao">Observação padrão do pedido</Label>
                 <Textarea
@@ -207,6 +246,7 @@ function ConfiguracoesPage() {
                   placeholder="Deixe em branco para gerar automaticamente com o número da nota."
                 />
               </div>
+
 
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => save.mutate()} disabled={save.isPending}>

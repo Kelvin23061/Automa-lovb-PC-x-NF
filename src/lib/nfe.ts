@@ -1,7 +1,10 @@
 export interface NfeItem {
   sequencia: number;
   codigo: string;
+  ean: string;
+  referencia: string;
   descricao: string;
+
   ncm: string;
   cfop: string;
   unidade: string;

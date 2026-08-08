@@ -253,7 +253,12 @@ function ImportarPage() {
         </Card>
       ) : (
         <div className="space-y-10">
-          {entries.map((entry) => (
+          {entries.map((entry) => {
+            const pendentes = entry.vinculos
+              ? entry.nfe.itens.filter((item) => !entry.vinculos?.[item.sequencia]?.codigoInterno)
+              : [];
+            const pronto = Boolean(entry.vinculos) && pendentes.length === 0;
+            return (
             <section key={entry.key} className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold text-foreground">
@@ -263,13 +268,30 @@ function ImportarPage() {
                   </span>
                 </h2>
                 <div className="flex items-center gap-2">
+                  {pronto && !entry.result && (
+                    <Badge className="bg-success text-success-foreground">
+                      Itens cadastrados · pronto para envio
+                    </Badge>
+                  )}
                   {entry.result?.ok && <Badge className="bg-success text-success-foreground">Enviada</Badge>}
                   {entry.result && !entry.result.ok && <Badge variant="destructive">Erro</Badge>}
                   <Button variant="ghost" size="sm" onClick={() => removeEntry(entry.key)}>
                     <Trash2 className="mr-2 h-4 w-4" />
                     Remover
                   </Button>
-                  <Button onClick={() => void send(entry)} disabled={entry.loading}>
+                  <Button
+                    variant="outline"
+                    onClick={() => void verificarVinculos(entry)}
+                    disabled={entry.checking}
+                  >
+                    {entry.checking ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    Atualizar cadastro
+                  </Button>
+                  <Button onClick={() => void send(entry)} disabled={entry.loading || !pronto}>
                     {entry.loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -282,11 +304,43 @@ function ImportarPage() {
                 </div>
               </div>
 
-              <NfePreview nfe={entry.nfe} />
+              {entry.vinculoErro && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Não foi possível consultar o cadastro dos itens</AlertTitle>
+                  <AlertDescription className="break-words">{entry.vinculoErro}</AlertDescription>
+                </Alert>
+              )}
+
+              {entry.vinculos && pendentes.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>
+                    {pendentes.length} item(ns) sem cadastro na empresa
+                  </AlertTitle>
+                  <AlertDescription>
+                    <p className="mb-2">
+                      Cadastre os produtos abaixo na Concinco e clique em “Atualizar cadastro”.
+                    </p>
+                    <ul className="list-inside list-disc space-y-1">
+                      {pendentes.map((item) => (
+                        <li key={item.sequencia}>
+                          Item {item.sequencia} · {item.descricao} — EAN{" "}
+                          {item.ean || "não informado"} · Referência {item.referencia || "-"}
+                        </li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <NfePreview nfe={entry.nfe} vinculos={entry.vinculos ?? undefined} />
 
               {entry.result && <ResultPanel result={entry.result} />}
             </section>
-          ))}
+            );
+          })}
+
         </div>
       )}
     </div>

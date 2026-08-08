@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCnpj, formatDate, formatMoney, formatNumber, type NfeData } from "@/lib/nfe";
+import type { ItemVinculo } from "@/lib/concinco-schemas";
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -21,7 +22,13 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function NfePreview({ nfe }: { nfe: NfeData }) {
+export function NfePreview({
+  nfe,
+  vinculos,
+}: {
+  nfe: NfeData;
+  vinculos?: Record<number, ItemVinculo>;
+}) {
   return (
     <div className="space-y-4">
       <Card>
@@ -62,8 +69,9 @@ export function NfePreview({ nfe }: { nfe: NfeData }) {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10">#</TableHead>
-                  <TableHead>Código</TableHead>
+                  <TableHead>Cód. / EAN</TableHead>
                   <TableHead className="min-w-56">Descrição</TableHead>
+                  <TableHead className="min-w-44">Cadastro na empresa</TableHead>
                   <TableHead>Un.</TableHead>
                   <TableHead className="text-right">Qtd.</TableHead>
                   <TableHead className="text-right">Vlr. unit.</TableHead>
@@ -73,38 +81,77 @@ export function NfePreview({ nfe }: { nfe: NfeData }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {nfe.itens.map((item) => (
-                  <TableRow key={`${item.sequencia}-${item.codigo}`}>
-                    <TableCell className="text-muted-foreground">{item.sequencia}</TableCell>
-                    <TableCell className="font-mono text-xs">{item.codigo}</TableCell>
-                    <TableCell className="max-w-80">
-                      <span className="block truncate" title={item.descricao}>
-                        {item.descricao}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        NCM {item.ncm || "-"} · CFOP {item.cfop || "-"}
-                      </span>
-                    </TableCell>
-                    <TableCell>{item.unidade}</TableCell>
-                    <TableCell className="text-right">{formatNumber(item.quantidade)}</TableCell>
-                    <TableCell className="text-right">{formatMoney(item.valorUnitario)}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatMoney(item.valorTotal)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatMoney(item.valorIcms)}
-                      <span className="block text-xs text-muted-foreground">
-                        {formatNumber(item.aliquotaIcms, 2)}%
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatMoney(item.valorIpi)}
-                      <span className="block text-xs text-muted-foreground">
-                        {formatNumber(item.aliquotaIpi, 2)}%
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {nfe.itens.map((item) => {
+                  const vinculo = vinculos?.[item.sequencia];
+                  return (
+                    <TableRow key={`${item.sequencia}-${item.codigo}`}>
+                      <TableCell className="text-muted-foreground">{item.sequencia}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {item.codigo || "-"}
+                        <span className="block text-muted-foreground">
+                          EAN {item.ean || "não informado"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-80">
+                        <span className="block truncate" title={item.descricao}>
+                          {item.descricao}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          NCM {item.ncm || "-"} · CFOP {item.cfop || "-"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {!vinculo ? (
+                          <span className="text-xs text-muted-foreground">Não consultado</span>
+                        ) : vinculo.codigoInterno ? (
+                          <div className="space-y-1">
+                            <Badge className="bg-success text-success-foreground">Cadastrado</Badge>
+                            <span className="block font-mono text-xs text-foreground">
+                              {vinculo.codigoInterno}
+                            </span>
+                            {vinculo.descricaoInterna && (
+                              <span
+                                className="block max-w-44 truncate text-xs text-muted-foreground"
+                                title={vinculo.descricaoInterna}
+                              >
+                                {vinculo.descricaoInterna}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <Badge variant="destructive">Sem cadastro</Badge>
+                            {vinculo.mensagem && (
+                              <span className="block max-w-44 text-xs text-muted-foreground">
+                                {vinculo.mensagem}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>{item.unidade}</TableCell>
+                      <TableCell className="text-right">{formatNumber(item.quantidade)}</TableCell>
+                      <TableCell className="text-right">
+                        {formatMoney(item.valorUnitario)}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatMoney(item.valorTotal)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatMoney(item.valorIcms)}
+                        <span className="block text-xs text-muted-foreground">
+                          {formatNumber(item.aliquotaIcms, 2)}%
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatMoney(item.valorIpi)}
+                        <span className="block text-xs text-muted-foreground">
+                          {formatNumber(item.aliquotaIpi, 2)}%
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

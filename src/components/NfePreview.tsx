@@ -27,7 +27,7 @@ export function NfePreview({
   vinculos,
 }: {
   nfe: NfeData;
-  vinculos?: Record<number, ItemVinculo>;
+  vinculos?: Record<number, ItemVinculo> | undefined;
 }) {
   return (
     <div className="space-y-4">

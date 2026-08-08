@@ -63,6 +63,9 @@ export const configSchema = z.object({
   condicaoPagamento: z.string().trim().max(60),
   tipoPedido: z.string().trim().max(60),
   observacao: z.string().trim().max(500),
+  produtoPath: z.string().trim().max(300).default(""),
+  produtoParamEan: z.string().trim().max(60).default("codigoBarras"),
+  produtoParamReferencia: z.string().trim().max(60).default("referencia"),
 });
 
 export type ConfigInput = z.infer<typeof configSchema>;
@@ -74,8 +77,12 @@ export interface ConfigView {
   condicaoPagamento: string;
   tipoPedido: string;
   observacao: string;
+  produtoPath: string;
+  produtoParamEan: string;
+  produtoParamReferencia: string;
   hasToken: boolean;
 }
+
 
 export type JsonValue =
   | string

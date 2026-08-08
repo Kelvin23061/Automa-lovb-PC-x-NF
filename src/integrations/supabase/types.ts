@@ -24,6 +24,9 @@ export type Database = {
           filial: string
           id: string
           observacao: string
+          produto_param_ean: string
+          produto_param_referencia: string
+          produto_path: string
           singleton: boolean
           tipo_pedido: string
           updated_at: string
@@ -37,6 +40,9 @@ export type Database = {
           filial?: string
           id?: string
           observacao?: string
+          produto_param_ean?: string
+          produto_param_referencia?: string
+          produto_path?: string
           singleton?: boolean
           tipo_pedido?: string
           updated_at?: string
@@ -50,6 +56,9 @@ export type Database = {
           filial?: string
           id?: string
           observacao?: string
+          produto_param_ean?: string
+          produto_param_referencia?: string
+          produto_path?: string
           singleton?: boolean
           tipo_pedido?: string
           updated_at?: string

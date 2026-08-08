@@ -1,10 +1,12 @@
-import type { NfeData } from "./nfe";
+import type { NfeData, NfeItem } from "./nfe";
 import type {
   ConfigInput,
   ConfigView,
   EnvioResultado,
   HistoryRow,
+  ItemVinculo,
   JsonValue,
+  ResultadoConsultaItens,
 } from "./concinco-schemas";
 import {
   buildPedidoCompraPayload,
@@ -27,6 +29,9 @@ interface ConfigRow {
   condicao_pagamento: string;
   tipo_pedido: string;
   observacao: string;
+  produto_path: string;
+  produto_param_ean: string;
+  produto_param_referencia: string;
 }
 
 const EMPTY_ROW: ConfigRow = {
@@ -37,13 +42,18 @@ const EMPTY_ROW: ConfigRow = {
   condicao_pagamento: "",
   tipo_pedido: "",
   observacao: "",
+  produto_path: "",
+  produto_param_ean: "codigoBarras",
+  produto_param_referencia: "referencia",
 };
 
 async function loadConfigRow(): Promise<ConfigRow> {
   const db = await admin();
   const { data, error } = await db
     .from("api_config")
-    .select("base_url, auth_token, empresa, filial, condicao_pagamento, tipo_pedido, observacao")
+    .select(
+      "base_url, auth_token, empresa, filial, condicao_pagamento, tipo_pedido, observacao, produto_path, produto_param_ean, produto_param_referencia",
+    )
     .eq("singleton", true)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -58,6 +68,9 @@ function toView(row: ConfigRow): ConfigView {
     condicaoPagamento: row.condicao_pagamento,
     tipoPedido: row.tipo_pedido,
     observacao: row.observacao,
+    produtoPath: row.produto_path,
+    produtoParamEan: row.produto_param_ean || "codigoBarras",
+    produtoParamReferencia: row.produto_param_referencia || "referencia",
     hasToken: Boolean(row.auth_token),
   };
 }
@@ -76,6 +89,9 @@ export async function writeConfig(input: ConfigInput): Promise<ConfigView> {
     condicao_pagamento: input.condicaoPagamento,
     tipo_pedido: input.tipoPedido,
     observacao: input.observacao,
+    produto_path: input.produtoPath,
+    produto_param_ean: input.produtoParamEan || "codigoBarras",
+    produto_param_referencia: input.produtoParamReferencia || "referencia",
   };
   const db = await admin();
   const { error } = await db
@@ -85,8 +101,9 @@ export async function writeConfig(input: ConfigInput): Promise<ConfigView> {
   return toView(row);
 }
 
-function buildUrl(baseUrl: string): string {
-  return `${baseUrl.replace(/\/+$/, "")}${ENDPOINT_PATH}`;
+function buildUrl(baseUrl: string, path = ENDPOINT_PATH): string {
+  const suffix = path.startsWith("/") ? path : `/${path}`;
+  return `${baseUrl.replace(/\/+$/, "")}${suffix}`;
 }
 
 function authHeaders(token: string): Record<string, string> {
@@ -133,15 +150,163 @@ export async function testConnection(): Promise<{ ok: boolean; httpStatus: numbe
   }
 }
 
-export async function enviarPedido(nfe: NfeData): Promise<EnvioResultado> {
+const CODIGO_KEYS = [
+  "codigointerno",
+  "codigo_interno",
+  "codigoproduto",
+  "codigo_produto",
+  "codproduto",
+  "codigoempresa",
+  "codigo",
+  "idproduto",
+  "produto",
+];
+
+const DESCRICAO_KEYS = ["descricao", "descricaoproduto", "nome", "xprod", "descricaocompleta"];
+
+function findValue(value: unknown, keys: string[], depth = 0): string | null {
+  if (depth > 6 || value == null) return null;
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const found = findValue(entry, keys, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  for (const key of Object.keys(record)) {
+    if (keys.includes(key.toLowerCase())) {
+      const raw = record[key];
+      if (typeof raw === "string" && raw.trim()) return raw.trim();
+      if (typeof raw === "number") return String(raw);
+    }
+  }
+  for (const key of Object.keys(record)) {
+    const found = findValue(record[key], keys, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+async function consultarProduto(
+  row: ConfigRow,
+  param: string,
+  value: string,
+): Promise<{ codigo: string | null; descricao: string | null; mensagem: string | null }> {
+  const url = new URL(buildUrl(row.base_url, row.produto_path));
+  url.searchParams.set(param, value);
+  try {
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: { Accept: "application/json", ...authHeaders(row.auth_token) },
+    });
+    if (res.status === 404) return { codigo: null, descricao: null, mensagem: null };
+    const body = await parseBody(res);
+    if (!res.ok) {
+      return {
+        codigo: null,
+        descricao: null,
+        mensagem: extractErrorMessage(body, `A API respondeu com HTTP ${res.status}.`),
+      };
+    }
+    return {
+      codigo: findValue(body, CODIGO_KEYS),
+      descricao: findValue(body, DESCRICAO_KEYS),
+      mensagem: null,
+    };
+  } catch (error) {
+    return {
+      codigo: null,
+      descricao: null,
+      mensagem: `Falha de comunicação com a API: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+export async function consultarItens(itens: NfeItem[]): Promise<ResultadoConsultaItens> {
   const row = await loadConfigRow();
-  const payload = buildPedidoCompraPayload(nfe, {
-    empresa: row.empresa,
-    filial: row.filial,
-    condicaoPagamento: row.condicao_pagamento,
-    tipoPedido: row.tipo_pedido,
-    observacao: row.observacao,
+  const vazio = (mensagem: string): ResultadoConsultaItens => ({
+    ok: false,
+    mensagem,
+    vinculos: itens.map((item) => ({
+      sequencia: item.sequencia,
+      codigoInterno: null,
+      descricaoInterna: null,
+      encontradoPor: null,
+      mensagem,
+    })),
   });
+
+  if (!row.base_url) return vazio("URL base da API não configurada. Acesse Configurações.");
+  if (!row.produto_path) {
+    return vazio("Rota de consulta de produtos não configurada. Acesse Configurações.");
+  }
+
+  const vinculos: ItemVinculo[] = [];
+  for (const item of itens) {
+    let resultado = { codigo: null as string | null, descricao: null as string | null, mensagem: null as string | null };
+    let encontradoPor: ItemVinculo["encontradoPor"] = null;
+
+    if (item.ean) {
+      resultado = await consultarProduto(row, row.produto_param_ean || "codigoBarras", item.ean);
+      if (resultado.codigo) encontradoPor = "ean";
+    }
+    if (!resultado.codigo && item.referencia) {
+      const porReferencia = await consultarProduto(
+        row,
+        row.produto_param_referencia || "referencia",
+        item.referencia,
+      );
+      if (porReferencia.codigo) {
+        resultado = porReferencia;
+        encontradoPor = "referencia";
+      } else if (!resultado.mensagem) {
+        resultado = porReferencia;
+      }
+    }
+
+    vinculos.push({
+      sequencia: item.sequencia,
+      codigoInterno: resultado.codigo,
+      descricaoInterna: resultado.descricao,
+      encontradoPor,
+      mensagem: resultado.codigo ? null : resultado.mensagem,
+    });
+  }
+
+  return { ok: true, mensagem: null, vinculos };
+}
+
+export async function enviarPedido(
+  nfe: NfeData,
+  codigosInternos: Record<number, string | null> = {},
+): Promise<EnvioResultado> {
+  const row = await loadConfigRow();
+  const payload = buildPedidoCompraPayload(
+    nfe,
+    {
+      empresa: row.empresa,
+      filial: row.filial,
+      condicaoPagamento: row.condicao_pagamento,
+      tipoPedido: row.tipo_pedido,
+      observacao: row.observacao,
+    },
+    codigosInternos,
+  );
+
+  const pendentes = nfe.itens.filter((item) => !codigosInternos[item.sequencia]);
+  if (pendentes.length > 0) {
+    return {
+      ok: false,
+      numeroPedido: null,
+      httpStatus: null,
+      errorMessage: `Existem ${pendentes.length} item(ns) sem cadastro na empresa. Cadastre-os na Concinco e atualize os vínculos antes de gerar o pedido.`,
+      payload: payload as unknown as JsonValue,
+      response: null,
+      historyId: null,
+    };
+  }
 
   if (!row.base_url) {
     return {
@@ -205,7 +370,6 @@ export async function enviarPedido(nfe: NfeData): Promise<EnvioResultado> {
         error_message: errorMessage,
         payload: JSON.parse(JSON.stringify(payload)),
         response: response == null ? null : JSON.parse(JSON.stringify(response)),
-
       })
       .select("id")
       .maybeSingle();

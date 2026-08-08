@@ -3,6 +3,8 @@ import { z } from "zod";
 export const nfeItemSchema = z.object({
   sequencia: z.number(),
   codigo: z.string(),
+  ean: z.string().default(""),
+  referencia: z.string().default(""),
   descricao: z.string(),
   ncm: z.string(),
   cfop: z.string(),
@@ -15,6 +17,23 @@ export const nfeItemSchema = z.object({
   valorIpi: z.number(),
   aliquotaIpi: z.number(),
 });
+
+export const itemVinculoSchema = z.object({
+  sequencia: z.number(),
+  codigoInterno: z.string().nullable(),
+  descricaoInterna: z.string().nullable(),
+  encontradoPor: z.enum(["ean", "referencia"]).nullable(),
+  mensagem: z.string().nullable(),
+});
+
+export type ItemVinculo = z.infer<typeof itemVinculoSchema>;
+
+export interface ResultadoConsultaItens {
+  ok: boolean;
+  mensagem: string | null;
+  vinculos: ItemVinculo[];
+}
+
 
 export const nfeSchema = z.object({
   arquivo: z.string(),
@@ -44,6 +63,9 @@ export const configSchema = z.object({
   condicaoPagamento: z.string().trim().max(60),
   tipoPedido: z.string().trim().max(60),
   observacao: z.string().trim().max(500),
+  produtoPath: z.string().trim().max(300).default(""),
+  produtoParamEan: z.string().trim().max(60).default("codigoBarras"),
+  produtoParamReferencia: z.string().trim().max(60).default("referencia"),
 });
 
 export type ConfigInput = z.infer<typeof configSchema>;
@@ -55,8 +77,12 @@ export interface ConfigView {
   condicaoPagamento: string;
   tipoPedido: string;
   observacao: string;
+  produtoPath: string;
+  produtoParamEan: string;
+  produtoParamReferencia: string;
   hasToken: boolean;
 }
+
 
 export type JsonValue =
   | string

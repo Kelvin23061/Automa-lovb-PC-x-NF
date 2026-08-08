@@ -18,7 +18,11 @@ export interface PedidoCompraPayload {
  * `POST {baseUrl}/PedidoComprasApi/api/v1/PedidoCompras/incluir-pedido-compra`.
  * Ajuste apenas este arquivo quando o contrato oficial da Concinco for confirmado.
  */
-export function buildPedidoCompraPayload(nfe: NfeData, config: PedidoConfig): PedidoCompraPayload {
+export function buildPedidoCompraPayload(
+  nfe: NfeData,
+  config: PedidoConfig,
+  codigosInternos: Record<number, string | null> = {},
+): PedidoCompraPayload {
   const round = (value: number) => Math.round(value * 100) / 100;
 
   return {
@@ -46,7 +50,11 @@ export function buildPedidoCompraPayload(nfe: NfeData, config: PedidoConfig): Pe
     },
     itens: nfe.itens.map((item) => ({
       sequencia: item.sequencia,
-      codigoProduto: item.codigo,
+      codigoProduto: codigosInternos[item.sequencia] ?? item.codigo,
+      codigoInternoProduto: codigosInternos[item.sequencia] ?? null,
+      codigoFornecedor: item.codigo,
+      codigoBarras: item.ean,
+      referenciaFornecedor: item.referencia,
       descricao: item.descricao,
       ncm: item.ncm,
       cfop: item.cfop,
@@ -61,6 +69,7 @@ export function buildPedidoCompraPayload(nfe: NfeData, config: PedidoConfig): Pe
     })),
   };
 }
+
 
 const PEDIDO_KEYS = [
   "numeropedido",

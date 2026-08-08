@@ -1,7 +1,10 @@
 export interface NfeItem {
   sequencia: number;
   codigo: string;
+  ean: string;
+  referencia: string;
   descricao: string;
+
   ncm: string;
   cfop: string;
   unidade: string;
@@ -109,6 +112,12 @@ export function parseNfeXml(xml: string, arquivo: string): NfeData {
     return {
       sequencia: Number(det.getAttribute("nItem") ?? index + 1),
       codigo: text(prod, "cProd"),
+      ean: (() => {
+        const ean = text(prod, "cEAN") || text(prod, "cEANTrib") || text(prod, "cBarra");
+        return /^\d{8,14}$/.test(ean) ? ean : "";
+      })(),
+      referencia: text(prod, "cProd"),
+
       descricao: text(prod, "xProd"),
       ncm: text(prod, "NCM"),
       cfop: text(prod, "CFOP"),

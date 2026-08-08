@@ -41,7 +41,11 @@ const EMPTY = {
   condicaoPagamento: "",
   tipoPedido: "",
   observacao: "",
+  produtoPath: "",
+  produtoParamEan: "codigoBarras",
+  produtoParamReferencia: "referencia",
 };
+
 
 function ConfiguracoesPage() {
   const fetchConfig = useServerFn(getConfig);

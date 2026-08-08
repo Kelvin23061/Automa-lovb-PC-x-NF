@@ -75,6 +75,10 @@ function ConfiguracoesPage() {
       condicaoPagamento: data.condicaoPagamento,
       tipoPedido: data.tipoPedido,
       observacao: data.observacao,
+      produtoPath: data.produtoPath,
+      produtoParamEan: data.produtoParamEan,
+      produtoParamReferencia: data.produtoParamReferencia,
+
     });
   }, [data]);
 

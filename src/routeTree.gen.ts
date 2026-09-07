@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as HistoricoRouteImport } from './routes/historico'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistoricoRoute = HistoricoRouteImport.update({
   id: '/historico',
   path: '/historico',
@@ -32,30 +38,34 @@ const HistoricoRoute = HistoricoRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/dashboard': typeof DashboardRoute
   '/historico': typeof HistoricoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/dashboard': typeof DashboardRoute
   '/historico': typeof HistoricoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/dashboard': typeof DashboardRoute
   '/historico': typeof HistoricoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/configuracoes' | '/historico'
+  fullPaths: '/' | '/configuracoes' | '/dashboard' | '/historico'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/configuracoes' | '/historico'
-  id: '__root__' | '/' | '/configuracoes' | '/historico'
+  to: '/' | '/configuracoes' | '/dashboard' | '/historico'
+  id: '__root__' | '/' | '/configuracoes' | '/dashboard' | '/historico'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
+  DashboardRoute: typeof DashboardRoute
   HistoricoRoute: typeof HistoricoRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/historico': {
       id: '/historico'
       path: '/historico'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
+  DashboardRoute: DashboardRoute,
   HistoricoRoute: HistoricoRoute,
 }
 export const routeTree = rootRouteImport

@@ -85,12 +85,12 @@ function monthKey(value: string) {
 }
 
 function formatDayLabel(key: string) {
-  const [, m, d] = key.split("-");
+  const [, m = "", d = ""] = key.split("-");
   return `${d}/${m}`;
 }
 
 function formatMonthLabel(key: string) {
-  const [y, m] = key.split("-");
+  const [y = "", m = ""] = key.split("-");
   return `${m}/${y.slice(2)}`;
 }
 
@@ -446,7 +446,7 @@ function MetricCard({
   icon: React.ReactNode;
   label: string;
   value: string;
-  hint?: string;
+  hint?: string | undefined;
 }) {
   return (
     <Card className="border-border/70">

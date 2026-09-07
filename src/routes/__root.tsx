@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeToggle, themeInitScript } from "@/components/ThemeToggle";
 
 
 function NotFoundComponent() {
@@ -107,6 +108,7 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <HeadContent />
       </head>
       <body>
@@ -118,6 +120,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 const NAV = [
+  { to: "/dashboard", label: "Dashboard" },
   { to: "/", label: "Importar XML" },
   { to: "/configuracoes", label: "Configurações" },
   { to: "/historico", label: "Histórico" },
@@ -144,19 +147,24 @@ function RootComponent() {
                 </span>
               </span>
             </Link>
-            <nav className="flex flex-wrap items-center gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+            <nav className="flex flex-wrap items-center gap-1 rounded-full border border-border/70 bg-secondary/40 p-1">
               {NAV.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
                   activeOptions={{ exact: item.to === "/" }}
-                  className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                  activeProps={{ className: "bg-secondary text-foreground" }}
+                  className="rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-card hover:text-foreground"
+                  activeProps={{
+                    className: "bg-card text-foreground shadow-sm ring-1 ring-border/70",
+                  }}
                 >
                   {item.label}
                 </Link>
               ))}
             </nav>
+            <ThemeToggle />
+            </div>
           </div>
         </header>
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-10">

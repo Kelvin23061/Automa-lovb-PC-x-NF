@@ -119,6 +119,57 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_base_info: {
+        Row: {
+          arquivo: string
+          singleton: boolean
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          arquivo?: string
+          singleton?: boolean
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          arquivo?: string
+          singleton?: boolean
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      produto_codigo_barras: {
+        Row: {
+          cod_acesso: string
+          descricao: string
+          embalagem: string
+          fornecedor: string
+          id: number
+          seq_produto: string
+          tipo_codigo: string
+        }
+        Insert: {
+          cod_acesso: string
+          descricao?: string
+          embalagem?: string
+          fornecedor?: string
+          id?: number
+          seq_produto: string
+          tipo_codigo?: string
+        }
+        Update: {
+          cod_acesso?: string
+          descricao?: string
+          embalagem?: string
+          fornecedor?: string
+          id?: number
+          seq_produto?: string
+          tipo_codigo?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

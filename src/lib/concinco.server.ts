@@ -224,30 +224,76 @@ async function consultarProduto(
   }
 }
 
+export function normalizarCodigo(value: string | number | null | undefined): string {
+  return String(value ?? "").replace(/\D/g, "").replace(/^0+/, "");
+}
+
+interface ProdutoBase {
+  seq_produto: string;
+  cod_acesso: string;
+  descricao: string;
+  embalagem: string;
+}
+
+async function buscarNaBase(codigos: string[]): Promise<Map<string, ProdutoBase[]>> {
+  const mapa = new Map<string, ProdutoBase[]>();
+  if (!codigos.length) return mapa;
+  const db = await admin();
+  const { data, error } = await db
+    .from("produto_codigo_barras")
+    .select("seq_produto, cod_acesso, descricao, embalagem")
+    .in("cod_acesso", codigos)
+    .order("id");
+  if (error) throw new Error(error.message);
+  for (const row of (data ?? []) as ProdutoBase[]) {
+    const lista = mapa.get(row.cod_acesso) ?? [];
+    if (!lista.some((p) => p.seq_produto === row.seq_produto)) lista.push(row);
+    mapa.set(row.cod_acesso, lista);
+  }
+  return mapa;
+}
+
 export async function consultarItens(itens: NfeItem[]): Promise<ResultadoConsultaItens> {
   const row = await loadConfigRow();
-  const vazio = (mensagem: string): ResultadoConsultaItens => ({
-    ok: false,
-    mensagem,
-    vinculos: itens.map((item) => ({
-      sequencia: item.sequencia,
-      codigoInterno: null,
-      descricaoInterna: null,
-      encontradoPor: null,
-      mensagem,
-    })),
-  });
-
-  if (!row.base_url) return vazio("URL base da API não configurada. Acesse Configurações.");
-  if (!row.produto_path) {
-    return vazio("Rota de consulta de produtos não configurada. Acesse Configurações.");
-  }
+  const codigos = [...new Set(itens.map((i) => normalizarCodigo(i.ean)).filter(Boolean))];
+  const base = await buscarNaBase(codigos);
+  const apiDisponivel = Boolean(row.base_url && row.produto_path);
 
   const vinculos: ItemVinculo[] = [];
   for (const item of itens) {
+    const achados = base.get(normalizarCodigo(item.ean));
+    if (achados?.length) {
+      const p = achados[0]!;
+      vinculos.push({
+        sequencia: item.sequencia,
+        codigoInterno: p.seq_produto,
+        descricaoInterna: p.descricao || null,
+        embalagem: p.embalagem || null,
+        encontradoPor: "planilha",
+        mensagem:
+          achados.length > 1
+            ? `Código duplicado na base (${achados.map((a) => a.seq_produto).join(", ")}). Usado o primeiro.`
+            : null,
+      });
+      continue;
+    }
+
+    if (!apiDisponivel) {
+      vinculos.push({
+        sequencia: item.sequencia,
+        codigoInterno: null,
+        descricaoInterna: null,
+        embalagem: null,
+        encontradoPor: null,
+        mensagem: item.ean
+          ? "Código de barras não encontrado na base de produtos."
+          : "Item sem código de barras na nota.",
+      });
+      continue;
+    }
+
     let resultado = { codigo: null as string | null, descricao: null as string | null, mensagem: null as string | null };
     let encontradoPor: ItemVinculo["encontradoPor"] = null;
-
     if (item.ean) {
       resultado = await consultarProduto(row, row.produto_param_ean || "codigoBarras", item.ean);
       if (resultado.codigo) encontradoPor = "ean";
@@ -265,17 +311,76 @@ export async function consultarItens(itens: NfeItem[]): Promise<ResultadoConsult
         resultado = porReferencia;
       }
     }
-
     vinculos.push({
       sequencia: item.sequencia,
       codigoInterno: resultado.codigo,
       descricaoInterna: resultado.descricao,
+      embalagem: null,
       encontradoPor,
       mensagem: resultado.codigo ? null : resultado.mensagem,
     });
   }
 
   return { ok: true, mensagem: null, vinculos };
+}
+
+export interface BaseProdutosInfo {
+  total: number;
+  arquivo: string | null;
+  atualizadoEm: string | null;
+}
+
+export async function readBaseInfo(): Promise<BaseProdutosInfo> {
+  const db = await admin();
+  const { count } = await db
+    .from("produto_codigo_barras")
+    .select("id", { count: "exact", head: true });
+  const { data } = await db
+    .from("produto_base_info")
+    .select("arquivo, updated_at")
+    .eq("singleton", true)
+    .maybeSingle();
+  const info = data as { arquivo: string; updated_at: string } | null;
+  return { total: count ?? 0, arquivo: info?.arquivo || null, atualizadoEm: info?.updated_at ?? null };
+}
+
+export interface LinhaProduto {
+  seqProduto: string;
+  fornecedor: string;
+  codAcesso: string;
+  descricao: string;
+  embalagem: string;
+  tipoCodigo: string;
+}
+
+export async function importarLoteProdutos(
+  linhas: LinhaProduto[],
+  substituir: boolean,
+  arquivo: string,
+): Promise<{ inseridos: number }> {
+  const db = await admin();
+  if (substituir) {
+    const { error } = await db.from("produto_codigo_barras").delete().gte("id", 0);
+    if (error) throw new Error(error.message);
+  }
+  const rows = linhas
+    .map((l) => ({
+      seq_produto: l.seqProduto.trim(),
+      fornecedor: l.fornecedor,
+      cod_acesso: normalizarCodigo(l.codAcesso),
+      descricao: l.descricao,
+      embalagem: l.embalagem,
+      tipo_codigo: l.tipoCodigo,
+    }))
+    .filter((r) => r.seq_produto && r.cod_acesso);
+  if (rows.length) {
+    const { error } = await db.from("produto_codigo_barras").insert(rows);
+    if (error) throw new Error(error.message);
+  }
+  await db
+    .from("produto_base_info")
+    .upsert({ singleton: true, arquivo, updated_at: new Date().toISOString() }, { onConflict: "singleton" });
+  return { inseridos: rows.length };
 }
 
 export async function enviarPedido(

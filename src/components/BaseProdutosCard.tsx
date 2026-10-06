@@ -27,6 +27,7 @@ export function BaseProdutosCard() {
       const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
       const sheet =
         wb.SheetNames.map((n) => wb.Sheets[n]).find((s) => {
+          if (!s) return false;
           const rows = XLSX.utils.sheet_to_json<string[]>(s, { header: 1, range: 0 });
           return rows[0]?.map((c) => String(c).toUpperCase()).includes("CODACESSO");
         }) ?? null;
@@ -35,12 +36,12 @@ export function BaseProdutosCard() {
       const s = (v: unknown) => String(v ?? "").trim();
       const linhas = rows
         .map((r) => ({
-          seqProduto: s(r.SEQPRODUTO),
-          fornecedor: s(r.FORNECEDOR).slice(0, 300),
-          codAcesso: s(r.CODACESSO),
-          descricao: s(r.DESCCOMPLETA).slice(0, 500),
-          embalagem: s(r.EMBALAGEM).slice(0, 100),
-          tipoCodigo: s(r.TIPCODIGO).slice(0, 60),
+          seqProduto: s(r["SEQPRODUTO"]),
+          fornecedor: s(r["FORNECEDOR"]).slice(0, 300),
+          codAcesso: s(r["CODACESSO"]),
+          descricao: s(r["DESCCOMPLETA"]).slice(0, 500),
+          embalagem: s(r["EMBALAGEM"]).slice(0, 100),
+          tipoCodigo: s(r["TIPCODIGO"]).slice(0, 60),
         }))
         .filter((l) => l.seqProduto && l.codAcesso);
       if (!linhas.length) throw new Error("A planilha não contém produtos válidos.");

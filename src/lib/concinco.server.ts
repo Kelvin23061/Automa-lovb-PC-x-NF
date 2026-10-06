@@ -263,7 +263,7 @@ export async function consultarItens(itens: NfeItem[]): Promise<ResultadoConsult
   for (const item of itens) {
     const achados = base.get(normalizarCodigo(item.ean));
     if (achados?.length) {
-      const p = achados[0];
+      const p = achados[0]!;
       vinculos.push({
         sequencia: item.sequencia,
         codigoInterno: p.seq_produto,

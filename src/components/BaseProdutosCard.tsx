@@ -17,6 +17,7 @@ export function BaseProdutosCard() {
   const qc = useQueryClient();
   const input = useRef<HTMLInputElement>(null);
   const [progresso, setProgresso] = useState<number | null>(null);
+  const [modo, setModo] = useState<"adicionar" | "substituir">("adicionar");
 
   const { data } = useQuery({ queryKey: ["base-produtos"], queryFn: () => fetchInfo() });
 
@@ -45,13 +46,21 @@ export function BaseProdutosCard() {
         }))
         .filter((l) => l.seqProduto && l.codAcesso);
       if (!linhas.length) throw new Error("A planilha não contém produtos válidos.");
+      let novos = 0;
+      let atualizados = 0;
       for (let i = 0; i < linhas.length; i += LOTE) {
-        await enviarLote({
-          data: { substituir: i === 0, arquivo: file.name, linhas: linhas.slice(i, i + LOTE) },
+        const r = await enviarLote({
+          data: { substituir: modo === "substituir" && i === 0, arquivo: file.name, linhas: linhas.slice(i, i + LOTE) },
         });
+        novos += r.novos;
+        atualizados += r.atualizados;
         setProgresso(Math.round(((i + LOTE) / linhas.length) * 100));
       }
-      toast.success(`Base atualizada com ${linhas.length.toLocaleString("pt-BR")} códigos.`);
+      toast.success(
+        modo === "substituir"
+          ? `Base substituída com ${novos.toLocaleString("pt-BR")} códigos.`
+          : `${novos.toLocaleString("pt-BR")} novos códigos, ${atualizados.toLocaleString("pt-BR")} atualizados.`,
+      );
       qc.invalidateQueries({ queryKey: ["base-produtos"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao importar a planilha.");
@@ -89,14 +98,29 @@ export function BaseProdutosCard() {
                   : "—"}
             </p>
           </div>
-          <Button
-            className="ml-auto"
-            disabled={progresso !== null}
-            onClick={() => input.current?.click()}
-          >
-            {progresso !== null ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Enviar planilha atualizada
-          </Button>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button
+              disabled={progresso !== null}
+              onClick={() => {
+                setModo("adicionar");
+                input.current?.click();
+              }}
+            >
+              {progresso !== null ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              Adicionar novos cadastros
+            </Button>
+            <Button
+              variant="outline"
+              disabled={progresso !== null}
+              onClick={() => {
+                if (!confirm("Isso apaga toda a base atual e a substitui pela planilha enviada. Continuar?")) return;
+                setModo("substituir");
+                input.current?.click();
+              }}
+            >
+              Substituir base completa
+            </Button>
+          </div>
           <input
             ref={input}
             type="file"

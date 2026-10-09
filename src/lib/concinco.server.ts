@@ -224,9 +224,8 @@ async function consultarProduto(
   }
 }
 
-export function normalizarCodigo(value: string | number | null | undefined): string {
-  return String(value ?? "").replace(/\D/g, "").replace(/^0+/, "");
-}
+import { normalizarCodigo } from "./produto-lote";
+export { normalizarCodigo };
 
 interface ProdutoBase {
   seq_produto: string;
@@ -357,30 +356,37 @@ export async function importarLoteProdutos(
   linhas: LinhaProduto[],
   substituir: boolean,
   arquivo: string,
-): Promise<{ inseridos: number }> {
+): Promise<{ inseridos: number; novos: number; atualizados: number }> {
+  const { prepararLote } = await import("./produto-lote");
   const db = await admin();
   if (substituir) {
     const { error } = await db.from("produto_codigo_barras").delete().gte("id", 0);
     if (error) throw new Error(error.message);
   }
-  const rows = linhas
-    .map((l) => ({
-      seq_produto: l.seqProduto.trim(),
-      fornecedor: l.fornecedor,
-      cod_acesso: normalizarCodigo(l.codAcesso),
-      descricao: l.descricao,
-      embalagem: l.embalagem,
-      tipo_codigo: l.tipoCodigo,
-    }))
-    .filter((r) => r.seq_produto && r.cod_acesso);
+  const rows = prepararLote(linhas);
+  let existentes = 0;
+  if (rows.length && !substituir) {
+    const codigos = [...new Set(rows.map((r) => r.cod_acesso))];
+    const chaves = new Set(rows.map((r) => `${r.cod_acesso}|${r.seq_produto}`));
+    for (let i = 0; i < codigos.length; i += 500) {
+      const { data, error } = await db
+        .from("produto_codigo_barras")
+        .select("cod_acesso, seq_produto")
+        .in("cod_acesso", codigos.slice(i, i + 500));
+      if (error) throw new Error(error.message);
+      for (const d of data ?? []) if (chaves.has(`${d.cod_acesso}|${d.seq_produto}`)) existentes++;
+    }
+  }
   if (rows.length) {
-    const { error } = await db.from("produto_codigo_barras").insert(rows);
+    const { error } = await db
+      .from("produto_codigo_barras")
+      .upsert(rows, { onConflict: "cod_acesso,seq_produto" });
     if (error) throw new Error(error.message);
   }
   await db
     .from("produto_base_info")
     .upsert({ singleton: true, arquivo, updated_at: new Date().toISOString() }, { onConflict: "singleton" });
-  return { inseridos: rows.length };
+  return { inseridos: rows.length, novos: rows.length - existentes, atualizados: existentes };
 }
 
 export async function enviarPedido(

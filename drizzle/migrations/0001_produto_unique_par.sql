@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS produto_codigo_barras_par_uidx ON public.produto_codigo_barras (cod_acesso, seq_produto);

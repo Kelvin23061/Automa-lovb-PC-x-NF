@@ -11,13 +11,13 @@ import { importarBaseProdutos, infoBaseProdutos } from "@/lib/concinco.functions
 
 const LOTE = 4000;
 
-export function BaseProdutosCard() {
+export function BaseProdutosCard({ compact = false }: { compact?: boolean }) {
   const fetchInfo = useServerFn(infoBaseProdutos);
   const enviarLote = useServerFn(importarBaseProdutos);
   const qc = useQueryClient();
   const input = useRef<HTMLInputElement>(null);
   const [progresso, setProgresso] = useState<number | null>(null);
-  const [modo, setModo] = useState<"adicionar" | "substituir">("adicionar");
+  const modo = useRef<"adicionar" | "substituir">("adicionar");
 
   const { data } = useQuery({ queryKey: ["base-produtos"], queryFn: () => fetchInfo() });
 
@@ -50,16 +50,16 @@ export function BaseProdutosCard() {
       let atualizados = 0;
       for (let i = 0; i < linhas.length; i += LOTE) {
         const r = await enviarLote({
-          data: { substituir: modo === "substituir" && i === 0, arquivo: file.name, linhas: linhas.slice(i, i + LOTE) },
+          data: { substituir: modo.current === "substituir" && i === 0, arquivo: file.name, linhas: linhas.slice(i, i + LOTE) },
         });
         novos += r.novos;
         atualizados += r.atualizados;
         setProgresso(Math.round(((i + LOTE) / linhas.length) * 100));
       }
       toast.success(
-        modo === "substituir"
+        modo.current === "substituir"
           ? `Base substituída com ${novos.toLocaleString("pt-BR")} códigos.`
-          : `${novos.toLocaleString("pt-BR")} novos códigos, ${atualizados.toLocaleString("pt-BR")} atualizados.`,
+          : `Base atualizada: ${novos.toLocaleString("pt-BR")} novos códigos, ${atualizados.toLocaleString("pt-BR")} atualizados.`,
       );
       qc.invalidateQueries({ queryKey: ["base-produtos"] });
     } catch (e) {
@@ -70,6 +70,75 @@ export function BaseProdutosCard() {
     }
   }
 
+  const info = (
+    <>
+      <div>
+        <p className="text-muted-foreground">Códigos na base</p>
+        <p className="text-xl font-semibold">{data ? data.total.toLocaleString("pt-BR") : "…"}</p>
+      </div>
+      <div>
+        <p className="text-muted-foreground">Última atualização</p>
+        <p className="font-medium">
+          {data?.atualizadoEm
+            ? `${new Date(data.atualizadoEm).toLocaleString("pt-BR")}${data.arquivo ? ` · ${data.arquivo}` : ""}`
+            : data?.total
+              ? "Carga inicial"
+              : "—"}
+        </p>
+      </div>
+    </>
+  );
+
+  const botoes = (
+    <>
+      <Button
+        disabled={progresso !== null}
+        onClick={() => {
+          modo.current = "adicionar";
+          input.current?.click();
+        }}
+      >
+        {progresso !== null ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+        Importar planilha e atualizar base
+      </Button>
+      {!compact && (
+        <Button
+          variant="outline"
+          disabled={progresso !== null}
+          onClick={() => {
+            if (!confirm("Isso apaga toda a base atual e a substitui pela planilha enviada. Continuar?")) return;
+            modo.current = "substituir";
+            input.current?.click();
+          }}
+        >
+          Substituir base completa
+        </Button>
+      )}
+      <input
+        ref={input}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && importar(e.target.files[0])}
+      />
+    </>
+  );
+
+  if (compact) {
+    return (
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-6 py-4 text-sm">
+          <div className="flex items-center gap-2 font-medium text-foreground">
+            <Database className="h-4 w-4 text-primary" /> Base de produtos
+          </div>
+          {info}
+          <div className="ml-auto">{botoes}</div>
+          {progresso !== null && <Progress className="w-full" value={Math.min(progresso, 100)} />}
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="lg:col-span-3">
       <CardHeader>
@@ -78,56 +147,14 @@ export function BaseProdutosCard() {
         </CardTitle>
         <CardDescription>
           Os itens da nota são conciliados pelo código de barras com esta base. Envie a planilha
-          com as colunas SEQPRODUTO, FORNECEDOR, CODACESSO, DESCCOMPLETA, EMBALAGEM e TIPCODIGO
-          para substituí-la.
+          com as colunas SEQPRODUTO, FORNECEDOR, CODACESSO, DESCCOMPLETA, EMBALAGEM e TIPCODIGO:
+          os códigos novos entram e os existentes são atualizados automaticamente, sem apagar nada.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-6 text-sm">
-          <div>
-            <p className="text-muted-foreground">Códigos na base</p>
-            <p className="text-xl font-semibold">{data ? data.total.toLocaleString("pt-BR") : "…"}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Última importação</p>
-            <p className="font-medium">
-              {data?.atualizadoEm
-                ? `${new Date(data.atualizadoEm).toLocaleString("pt-BR")}${data.arquivo ? ` · ${data.arquivo}` : ""}`
-                : data?.total
-                  ? "Carga inicial"
-                  : "—"}
-            </p>
-          </div>
-          <div className="ml-auto flex flex-wrap gap-2">
-            <Button
-              disabled={progresso !== null}
-              onClick={() => {
-                setModo("adicionar");
-                input.current?.click();
-              }}
-            >
-              {progresso !== null ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              Adicionar novos cadastros
-            </Button>
-            <Button
-              variant="outline"
-              disabled={progresso !== null}
-              onClick={() => {
-                if (!confirm("Isso apaga toda a base atual e a substitui pela planilha enviada. Continuar?")) return;
-                setModo("substituir");
-                input.current?.click();
-              }}
-            >
-              Substituir base completa
-            </Button>
-          </div>
-          <input
-            ref={input}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            onChange={(e) => e.target.files?.[0] && importar(e.target.files[0])}
-          />
+          {info}
+          <div className="ml-auto flex flex-wrap gap-2">{botoes}</div>
         </div>
         {progresso !== null && <Progress value={Math.min(progresso, 100)} />}
       </CardContent>

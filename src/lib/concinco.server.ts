@@ -227,29 +227,10 @@ async function consultarProduto(
 
 export async function consultarItens(itens: NfeItem[]): Promise<ResultadoConsultaItens> {
   const row = await loadConfigRow();
-  const codigos = [...new Set(itens.map((i) => normalizarCodigo(i.ean)).filter(Boolean))];
-  const base = await buscarNaBase(codigos);
   const apiDisponivel = Boolean(row.base_url && row.produto_path);
 
   const vinculos: ItemVinculo[] = [];
   for (const item of itens) {
-    const achados = base.get(normalizarCodigo(item.ean));
-    if (achados?.length) {
-      const p = achados[0]!;
-      vinculos.push({
-        sequencia: item.sequencia,
-        codigoInterno: p.seq_produto,
-        descricaoInterna: p.descricao || null,
-        embalagem: p.embalagem || null,
-        encontradoPor: "planilha",
-        mensagem:
-          achados.length > 1
-            ? `Código duplicado na base (${achados.map((a) => a.seq_produto).join(", ")}). Usado o primeiro.`
-            : null,
-      });
-      continue;
-    }
-
     if (!apiDisponivel) {
       vinculos.push({
         sequencia: item.sequencia,

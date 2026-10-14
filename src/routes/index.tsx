@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { BaseProdutosCard } from "@/components/BaseProdutosCard";
 import { NfePreview } from "@/components/NfePreview";
 import { consultarCadastroItens, gerarPedidoCompra } from "@/lib/concinco.functions";
 import type { EnvioResultado, ItemVinculo } from "@/lib/concinco-schemas";
@@ -230,6 +231,8 @@ function ImportarPage() {
           />
         </CardContent>
       </Card>
+
+      <BaseProdutosCard compact />
 
       {parseErrors.length > 0 && (
         <Alert variant="destructive">

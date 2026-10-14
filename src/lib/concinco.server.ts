@@ -239,7 +239,7 @@ export async function consultarItens(itens: NfeItem[]): Promise<ResultadoConsult
         embalagem: null,
         encontradoPor: null,
         mensagem: item.ean
-          ? "Código de barras não encontrado na base de produtos."
+          ? "Código de barras não encontrado na API da Concinco."
           : "Item sem código de barras na nota.",
       });
       continue;

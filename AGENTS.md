@@ -8,4 +8,4 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
-- Item-to-internal-code matching looks up the local produto_codigo_barras table (normalized barcode) first and only falls back to the Concinco API; keeps lookups fast and works without the API route.
+- Item-to-internal-code matching goes straight to the Concinco API: EAN first, then reference (cProd) as fallback. No local barcode table.

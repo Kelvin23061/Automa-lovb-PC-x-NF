@@ -50,31 +50,3 @@ export const listarHistorico = createServerFn({ method: "GET" }).handler(async (
   return readHistory();
 });
 
-export const infoBaseProdutos = createServerFn({ method: "GET" }).handler(async () => {
-  const { readBaseInfo } = await import("./concinco.server");
-  return readBaseInfo();
-});
-
-const loteSchema = z.object({
-  substituir: z.boolean(),
-  arquivo: z.string().max(200),
-  linhas: z
-    .array(
-      z.object({
-        seqProduto: z.string().max(60),
-        fornecedor: z.string().max(300),
-        codAcesso: z.string().max(60),
-        descricao: z.string().max(500),
-        embalagem: z.string().max(100),
-        tipoCodigo: z.string().max(60),
-      }),
-    )
-    .max(5000),
-});
-
-export const importarBaseProdutos = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => loteSchema.parse(data))
-  .handler(async ({ data }) => {
-    const { importarLoteProdutos } = await import("./concinco.server");
-    return importarLoteProdutos(data.linhas, data.substituir, data.arquivo);
-  });

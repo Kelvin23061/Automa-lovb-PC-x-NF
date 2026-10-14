@@ -23,7 +23,7 @@ export const itemVinculoSchema = z.object({
   codigoInterno: z.string().nullable(),
   descricaoInterna: z.string().nullable(),
   embalagem: z.string().nullable().default(null),
-  encontradoPor: z.enum(["planilha", "ean", "referencia"]).nullable(),
+  encontradoPor: z.enum(["ean", "referencia"]).nullable(),
   mensagem: z.string().nullable(),
 });
 

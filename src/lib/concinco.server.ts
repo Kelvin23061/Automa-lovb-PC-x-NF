@@ -224,59 +224,13 @@ async function consultarProduto(
   }
 }
 
-import { normalizarCodigo } from "./produto-lote";
-export { normalizarCodigo };
-
-interface ProdutoBase {
-  seq_produto: string;
-  cod_acesso: string;
-  descricao: string;
-  embalagem: string;
-}
-
-async function buscarNaBase(codigos: string[]): Promise<Map<string, ProdutoBase[]>> {
-  const mapa = new Map<string, ProdutoBase[]>();
-  if (!codigos.length) return mapa;
-  const db = await admin();
-  const { data, error } = await db
-    .from("produto_codigo_barras")
-    .select("seq_produto, cod_acesso, descricao, embalagem")
-    .in("cod_acesso", codigos)
-    .order("id");
-  if (error) throw new Error(error.message);
-  for (const row of (data ?? []) as ProdutoBase[]) {
-    const lista = mapa.get(row.cod_acesso) ?? [];
-    if (!lista.some((p) => p.seq_produto === row.seq_produto)) lista.push(row);
-    mapa.set(row.cod_acesso, lista);
-  }
-  return mapa;
-}
 
 export async function consultarItens(itens: NfeItem[]): Promise<ResultadoConsultaItens> {
   const row = await loadConfigRow();
-  const codigos = [...new Set(itens.map((i) => normalizarCodigo(i.ean)).filter(Boolean))];
-  const base = await buscarNaBase(codigos);
   const apiDisponivel = Boolean(row.base_url && row.produto_path);
 
   const vinculos: ItemVinculo[] = [];
   for (const item of itens) {
-    const achados = base.get(normalizarCodigo(item.ean));
-    if (achados?.length) {
-      const p = achados[0]!;
-      vinculos.push({
-        sequencia: item.sequencia,
-        codigoInterno: p.seq_produto,
-        descricaoInterna: p.descricao || null,
-        embalagem: p.embalagem || null,
-        encontradoPor: "planilha",
-        mensagem:
-          achados.length > 1
-            ? `Código duplicado na base (${achados.map((a) => a.seq_produto).join(", ")}). Usado o primeiro.`
-            : null,
-      });
-      continue;
-    }
-
     if (!apiDisponivel) {
       vinculos.push({
         sequencia: item.sequencia,
@@ -285,7 +239,7 @@ export async function consultarItens(itens: NfeItem[]): Promise<ResultadoConsult
         embalagem: null,
         encontradoPor: null,
         mensagem: item.ean
-          ? "Código de barras não encontrado na base de produtos."
+          ? "Código de barras não encontrado na API da Concinco."
           : "Item sem código de barras na nota.",
       });
       continue;
@@ -321,72 +275,6 @@ export async function consultarItens(itens: NfeItem[]): Promise<ResultadoConsult
   }
 
   return { ok: true, mensagem: null, vinculos };
-}
-
-export interface BaseProdutosInfo {
-  total: number;
-  arquivo: string | null;
-  atualizadoEm: string | null;
-}
-
-export async function readBaseInfo(): Promise<BaseProdutosInfo> {
-  const db = await admin();
-  const { count } = await db
-    .from("produto_codigo_barras")
-    .select("id", { count: "exact", head: true });
-  const { data } = await db
-    .from("produto_base_info")
-    .select("arquivo, updated_at")
-    .eq("singleton", true)
-    .maybeSingle();
-  const info = data as { arquivo: string; updated_at: string } | null;
-  return { total: count ?? 0, arquivo: info?.arquivo || null, atualizadoEm: info?.updated_at ?? null };
-}
-
-export interface LinhaProduto {
-  seqProduto: string;
-  fornecedor: string;
-  codAcesso: string;
-  descricao: string;
-  embalagem: string;
-  tipoCodigo: string;
-}
-
-export async function importarLoteProdutos(
-  linhas: LinhaProduto[],
-  substituir: boolean,
-  arquivo: string,
-): Promise<{ inseridos: number; novos: number; atualizados: number }> {
-  const { prepararLote } = await import("./produto-lote");
-  const db = await admin();
-  if (substituir) {
-    const { error } = await db.from("produto_codigo_barras").delete().gte("id", 0);
-    if (error) throw new Error(error.message);
-  }
-  const rows = prepararLote(linhas);
-  let existentes = 0;
-  if (rows.length && !substituir) {
-    const codigos = [...new Set(rows.map((r) => r.cod_acesso))];
-    const chaves = new Set(rows.map((r) => `${r.cod_acesso}|${r.seq_produto}`));
-    for (let i = 0; i < codigos.length; i += 500) {
-      const { data, error } = await db
-        .from("produto_codigo_barras")
-        .select("cod_acesso, seq_produto")
-        .in("cod_acesso", codigos.slice(i, i + 500));
-      if (error) throw new Error(error.message);
-      for (const d of data ?? []) if (chaves.has(`${d.cod_acesso}|${d.seq_produto}`)) existentes++;
-    }
-  }
-  if (rows.length) {
-    const { error } = await db
-      .from("produto_codigo_barras")
-      .upsert(rows, { onConflict: "cod_acesso,seq_produto" });
-    if (error) throw new Error(error.message);
-  }
-  await db
-    .from("produto_base_info")
-    .upsert({ singleton: true, arquivo, updated_at: new Date().toISOString() }, { onConflict: "singleton" });
-  return { inseridos: rows.length, novos: rows.length - existentes, atualizados: existentes };
 }
 
 export async function enviarPedido(

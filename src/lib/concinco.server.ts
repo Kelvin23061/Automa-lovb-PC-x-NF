@@ -224,33 +224,6 @@ async function consultarProduto(
   }
 }
 
-import { normalizarCodigo } from "./produto-lote";
-export { normalizarCodigo };
-
-interface ProdutoBase {
-  seq_produto: string;
-  cod_acesso: string;
-  descricao: string;
-  embalagem: string;
-}
-
-async function buscarNaBase(codigos: string[]): Promise<Map<string, ProdutoBase[]>> {
-  const mapa = new Map<string, ProdutoBase[]>();
-  if (!codigos.length) return mapa;
-  const db = await admin();
-  const { data, error } = await db
-    .from("produto_codigo_barras")
-    .select("seq_produto, cod_acesso, descricao, embalagem")
-    .in("cod_acesso", codigos)
-    .order("id");
-  if (error) throw new Error(error.message);
-  for (const row of (data ?? []) as ProdutoBase[]) {
-    const lista = mapa.get(row.cod_acesso) ?? [];
-    if (!lista.some((p) => p.seq_produto === row.seq_produto)) lista.push(row);
-    mapa.set(row.cod_acesso, lista);
-  }
-  return mapa;
-}
 
 export async function consultarItens(itens: NfeItem[]): Promise<ResultadoConsultaItens> {
   const row = await loadConfigRow();

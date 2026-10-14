@@ -117,10 +117,6 @@ export function NfePreview({
                                 {vinculo.descricaoInterna}
                               </span>
                             )}
-                            <span className="block text-[11px] text-muted-foreground">
-                              {vinculo.encontradoPor === "planilha" ? "Pela planilha" : "Pela API"}
-                              {vinculo.embalagem ? ` · ${vinculo.embalagem}` : ""}
-                            </span>
                             {vinculo.mensagem && (
                               <span className="block max-w-44 text-[11px] text-warning">
                                 {vinculo.mensagem}

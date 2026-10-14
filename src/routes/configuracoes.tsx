@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getConfig, saveConfig, testarConexao } from "@/lib/concinco.functions";
-import { BaseProdutosCard } from "@/components/BaseProdutosCard";
 
 export const Route = createFileRoute("/configuracoes")({
   head: () => ({
@@ -303,7 +302,6 @@ function ConfiguracoesPage() {
               </p>
             </CardContent>
           </Card>
-          <BaseProdutosCard />
         </div>
       )}
     </div>

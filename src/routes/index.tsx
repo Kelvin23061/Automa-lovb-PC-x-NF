@@ -186,8 +186,8 @@ function ImportarPage() {
           Transforme XMLs de NF-e em pedidos de compra na Concinco
         </h1>
         <p className="mt-3 max-w-2xl text-sm text-sidebar-foreground/75">
-          Arraste os arquivos XML das notas faturadas, confira os dados extraídos e gere o pedido
-          com um clique. A leitura acontece no navegador; o envio à API é feito pelo servidor.
+          Selecione os XMLs das notas faturadas, confira os dados extraídos e gere o pedido com um
+          clique. A leitura acontece no navegador; o envio à API é feito pelo servidor.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Button
@@ -198,50 +198,18 @@ function ImportarPage() {
             Importar XML agora
           </Button>
         </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".xml,text/xml,application/xml"
+          multiple
+          className="hidden"
+          onChange={(event) => {
+            void handleFiles(event.target.files);
+            event.target.value = "";
+          }}
+        />
       </div>
-
-      <Card
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setDragging(false);
-          void handleFiles(event.dataTransfer.files);
-        }}
-        className={dragging ? "border-primary bg-accent/40" : ""}
-      >
-        <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-primary">
-            <UploadCloud className="h-7 w-7" />
-          </span>
-          <div>
-            <p className="text-base font-medium text-foreground">
-              Arraste e solte os XMLs aqui
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Aceita múltiplos arquivos de NF-e (.xml), incluindo XMLs com protocolo de autorização.
-            </p>
-          </div>
-          <Button onClick={() => inputRef.current?.click()}>
-            <FileUp className="mr-2 h-4 w-4" />
-            Selecionar arquivos
-          </Button>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".xml,text/xml,application/xml"
-            multiple
-            className="hidden"
-            onChange={(event) => {
-              void handleFiles(event.target.files);
-              event.target.value = "";
-            }}
-          />
-        </CardContent>
-      </Card>
 
       {parseErrors.length > 0 && (
         <Alert variant="destructive">

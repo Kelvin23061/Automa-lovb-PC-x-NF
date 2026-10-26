@@ -16,13 +16,13 @@ import { getConfig, saveConfig, testarConexao } from "@/lib/concinco.functions";
 export const Route = createFileRoute("/configuracoes")({
   head: () => ({
     meta: [
-      { title: "Configurações da API Concinco | Automação Fiscal" },
+      { title: "Configurações da API Concinco | Automação Pedido de Compra" },
       {
         name: "description",
         content:
           "Configure a URL base, o token de autenticação e os parâmetros padrão do pedido de compras da Concinco.",
       },
-      { property: "og:title", content: "Configurações da API Concinco | Automação Fiscal" },
+      { property: "og:title", content: "Configurações da API Concinco | Automação Pedido de Compra" },
       {
         property: "og:description",
         content:

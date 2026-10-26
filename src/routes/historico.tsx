@@ -21,13 +21,13 @@ import { formatCnpj, formatMoney } from "@/lib/nfe";
 export const Route = createFileRoute("/historico")({
   head: () => ({
     meta: [
-      { title: "Histórico de pedidos gerados | Automação Fiscal" },
+      { title: "Histórico de pedidos gerados | Automação Pedido de Compra" },
       {
         name: "description",
         content:
           "Acompanhe todas as notas importadas, o status do envio à Concinco e o número do pedido de compras gerado.",
       },
-      { property: "og:title", content: "Histórico de pedidos gerados | Automação Fiscal" },
+      { property: "og:title", content: "Histórico de pedidos gerados | Automação Pedido de Compra" },
       {
         property: "og:description",
         content:

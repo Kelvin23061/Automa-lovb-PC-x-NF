@@ -81,7 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "author", content: "Fiscal Flow" },
+      { name: "author", content: "Automação Pedido de Compra" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -139,7 +139,7 @@ function RootComponent() {
               <Barcode className="h-5 w-5" />
             </span>
             <span className="leading-tight">
-              <span className="block font-display text-sm font-bold">Fiscal Flow</span>
+              <span className="block font-display text-sm font-bold">Automação Pedido de Compra</span>
               <span className="block text-[10px] uppercase tracking-wider text-sidebar-foreground/60">
                 NF-e → Pedido Concinco
               </span>

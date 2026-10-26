@@ -8,7 +8,6 @@ import {
   Loader2,
   RefreshCw,
   Trash2,
-  UploadCloud,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,7 +54,6 @@ interface Entry {
 function ImportarPage() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
-  const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const enviar = useServerFn(gerarPedidoCompra);
   const consultar = useServerFn(consultarCadastroItens);

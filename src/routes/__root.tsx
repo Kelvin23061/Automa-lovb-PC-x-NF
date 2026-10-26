@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeToggle, themeInitScript } from "@/components/ThemeToggle";
+import { Barcode, FileUp, History, LayoutGrid, Settings } from "lucide-react";
 
 
 function NotFoundComponent() {
@@ -120,10 +121,10 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 const NAV = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/", label: "Importar XML" },
-  { to: "/configuracoes", label: "Configurações" },
-  { to: "/historico", label: "Histórico" },
+  { to: "/dashboard", label: "Painel", icon: LayoutGrid },
+  { to: "/", label: "Importar XML", icon: FileUp },
+  { to: "/configuracoes", label: "Configurações", icon: Settings },
+  { to: "/historico", label: "Histórico", icon: History },
 ] as const;
 
 function RootComponent() {
@@ -131,49 +132,50 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex min-h-screen flex-col bg-background">
-        <header className="sticky top-0 z-30 border-b border-border/80 bg-card/95 backdrop-blur">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <Link to="/" className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
-                NF
+      <div className="flex min-h-screen flex-col bg-background md:flex-row">
+        <aside className="sticky top-0 z-30 flex shrink-0 flex-col border-b border-sidebar-border bg-sidebar text-sidebar-foreground md:h-screen md:w-60 md:border-b-0 md:border-r">
+          <Link to="/" className="flex items-center gap-3 border-b border-sidebar-border px-4 py-4">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-[var(--shadow-glow)]">
+              <Barcode className="h-5 w-5" />
+            </span>
+            <span className="leading-tight">
+              <span className="block font-display text-sm font-bold">Fiscal Flow</span>
+              <span className="block text-[10px] uppercase tracking-wider text-sidebar-foreground/60">
+                NF-e → Pedido Concinco
               </span>
-              <span className="leading-tight">
-                <span className="block text-sm font-semibold text-foreground">
-                  Automação Fiscal &amp; Compras
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  NF-e para pedido de compras Concinco
-                </span>
-              </span>
-            </Link>
-            <div className="flex flex-wrap items-center gap-2">
-            <nav className="flex flex-wrap items-center gap-1 rounded-full border border-border/70 bg-secondary/40 p-1">
-              {NAV.map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  activeOptions={{ exact: item.to === "/" }}
-                  className="rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-card hover:text-foreground"
-                  activeProps={{
-                    className: "bg-card text-foreground shadow-sm ring-1 ring-border/70",
-                  }}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+            </span>
+          </Link>
+          <nav className="flex gap-1 overflow-x-auto p-3 md:flex-1 md:flex-col">
+            {NAV.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                activeOptions={{ exact: item.to === "/" }}
+                className="flex shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                activeProps={{
+                  className:
+                    "!bg-sidebar-primary !text-sidebar-primary-foreground shadow-[var(--shadow-glow)]",
+                }}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="hidden items-center justify-between border-t border-sidebar-border px-4 py-3 text-xs text-sidebar-foreground/60 md:flex">
+            Tema
             <ThemeToggle />
-            </div>
           </div>
-        </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-        </main>
-        <footer className="border-t border-border/80 py-4 text-center text-xs text-muted-foreground">
-          Leitura local do XML · envio seguro pelo servidor da aplicação
-        </footer>
+        </aside>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-8 sm:py-8">
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+          </main>
+          <footer className="border-t border-border/80 py-4 text-center text-xs text-muted-foreground">
+            Leitura local do XML · envio seguro pelo servidor da aplicação
+          </footer>
+        </div>
       </div>
       <Toaster richColors position="top-right" />
     </QueryClientProvider>

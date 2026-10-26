@@ -177,15 +177,29 @@ function ImportarPage() {
 
   return (
     <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
-          Importação de XML de NF-e
-        </h1>
-        <p className="max-w-3xl text-sm text-muted-foreground">
-          Arraste os arquivos XML das notas faturadas, confira os dados extraídos e gere o pedido de
-          compras na Concinco com um clique. A leitura acontece no seu navegador; o envio à API é
-          feito pelo servidor da aplicação.
+      <div
+        className="overflow-hidden rounded-2xl border border-sidebar-border p-8 text-sidebar-foreground shadow-lg sm:p-10"
+        style={{ backgroundImage: "var(--gradient-hero)" }}
+      >
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sidebar-primary">
+          • Automação de compras
         </p>
+        <h1 className="mt-3 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl">
+          Transforme XMLs de NF-e em pedidos de compra na Concinco
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm text-sidebar-foreground/75">
+          Arraste os arquivos XML das notas faturadas, confira os dados extraídos e gere o pedido
+          com um clique. A leitura acontece no navegador; o envio à API é feito pelo servidor.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button
+            onClick={() => inputRef.current?.click()}
+            className="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
+          >
+            <FileUp className="mr-2 h-4 w-4" />
+            Importar XML agora
+          </Button>
+        </div>
       </div>
 
       <Card

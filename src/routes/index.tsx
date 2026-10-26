@@ -24,13 +24,13 @@ import { NfeParseError, parseNfeXml, type NfeData } from "@/lib/nfe";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Importar XML de NF-e | Automação de Pedido de Compras" },
+      { title: "Importar XML de NF-e | Automação Pedido de Compra" },
       {
         name: "description",
         content:
           "Leia XMLs de notas fiscais eletrônicas, confira os dados extraídos e gere o pedido de compras na Concinco automaticamente.",
       },
-      { property: "og:title", content: "Importar XML de NF-e | Automação de Pedido de Compras" },
+      { property: "og:title", content: "Importar XML de NF-e | Automação Pedido de Compra" },
       {
         property: "og:description",
         content:

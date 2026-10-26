@@ -42,13 +42,13 @@ import { formatCnpj, formatMoney } from "@/lib/nfe";
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard de pedidos de compras | Automação Fiscal" },
+      { title: "Dashboard de pedidos de compras | Automação Pedido de Compra" },
       {
         name: "description",
         content:
           "Indicadores de pedidos de compras gerados por dia e por mês, valores por pedido e ranking dos fornecedores mais recorrentes.",
       },
-      { property: "og:title", content: "Dashboard de pedidos de compras | Automação Fiscal" },
+      { property: "og:title", content: "Dashboard de pedidos de compras | Automação Pedido de Compra" },
       {
         property: "og:description",
         content:
